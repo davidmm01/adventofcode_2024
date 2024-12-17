@@ -12,8 +12,8 @@ func main() {
 	fmt.Println("Day 2")
 
 	// read input
-	// readFile, err := os.Open("days/day_2/input.txt")
-	readFile, err := os.Open("days/day_2/2.txt")
+	readFile, err := os.Open("days/day_2/input.txt")
+	// readFile, err := os.Open("days/day_2/2.txt")
 
 	if err != nil {
 		fmt.Println(err)
@@ -39,6 +39,7 @@ func main() {
 	readFile.Close()
 
 	part1(reports)
+	part2BruteForce(reports)
 	part2(reports)
 }
 
@@ -70,17 +71,43 @@ func differsBy1To3(num1, num2 int) bool {
 	return num >= 1 && num <= 3
 }
 
-func part2(reports [][]int) {
+func part2BruteForce(reports [][]int) {
 	safeReports := 0
-	for i, report := range reports {
+	for _, report := range reports {
 		evaluation := evaluateReport(report)
 
-		fmt.Println("\nLine", i)
-		fmt.Println("report:", report)
-		fmt.Println("evaluation:", evaluation)
+		if evaluation.isSafe {
+			safeReports++
+			continue
+		}
+
+		for i := range report {
+			removedLevel := append(report[:0:0], report...)
+			removedLevel = append(removedLevel[:i], removedLevel[i+1:]...)
+			eval := evaluateReport(removedLevel)
+			if eval.isSafe {
+				// fmt.Println("safe by default:", report)
+				safeReports++
+				break
+			}
+		}
+	}
+	fmt.Println("Part 2 (brute force):", safeReports)
+}
+
+// part2 still buggy
+// finds 386, but via brute force solution found 398
+func part2(reports [][]int) {
+	safeReports := 0
+	for _, report := range reports {
+		evaluation := evaluateReport(report)
+
+		// fmt.Println("\nLine", i)
+		// fmt.Println("report:", report)
+		// fmt.Println("evaluation:", evaluation)
 
 		if evaluation.isSafe {
-			fmt.Println("safe by default:", report)
+			// fmt.Println("safe by default:", report)
 			safeReports++
 			continue
 		}
@@ -92,37 +119,62 @@ func part2(reports [][]int) {
 		// differs by rule, since it should pass the increasing/decreasing now.
 		if len(evaluation.decreases) == 1 && len(evaluation.increases) == len(report)-2 && len(evaluation.differViolations) < 2 {
 			// fmt.Println(i)
-			fmt.Println("!!! found one with only 1 decrease:", report)
-			shortReport := append(report[:evaluation.decreases[0]], report[evaluation.decreases[0]+1:]...)
-			shortReportEvaluation := evaluateReport(shortReport)
-			fmt.Println("ew report:", shortReport)
-			if shortReportEvaluation.isSafe {
-				fmt.Println("got fixed!")
+			// fmt.Println("!!! found one with only 1 decrease:", report)
+			shortReport1 := append(report[:0:0], report...)
+			shortReport1 = append(shortReport1[:evaluation.decreases[0]], shortReport1[evaluation.decreases[0]+1:]...)
+			shortReportEvaluation1 := evaluateReport(shortReport1)
+			// fmt.Println("report1:", shortReport1)
+			if shortReportEvaluation1.isSafe {
+				// fmt.Println("got fixed!")
+				safeReports++
+				continue
+			}
+
+			shortReport2 := append(report[:0:0], report...)
+			shortReport2 = append(shortReport2[:evaluation.decreases[0]-1], shortReport2[evaluation.decreases[0]:]...)
+			shortReportEvaluation2 := evaluateReport(shortReport2)
+			// fmt.Println("report2:", shortReport2)
+			if shortReportEvaluation2.isSafe {
+				// fmt.Println("got fixed!")
 				safeReports++
 				continue
 			}
 		}
 
 		if len(evaluation.increases) == 1 && len(evaluation.decreases) == len(report)-2 && len(evaluation.differViolations) < 2 {
-			fmt.Println("@@@ found one with only 1 increase:", report)
-			shortReport := append(report[:evaluation.increases[0]], report[evaluation.increases[0]+1:]...)
-			shortReportEvaluation := evaluateReport(shortReport)
-			fmt.Println("short", shortReport)
-			if shortReportEvaluation.isSafe {
-				fmt.Println("got fixed")
+			// fmt.Println("@@@ found one with only 1 increase:", report)
+			shortReport1 := append(report[:0:0], report...)
+			shortReport1 = append(shortReport1[:evaluation.increases[0]], shortReport1[evaluation.increases[0]+1:]...)
+			shortReportEvaluation1 := evaluateReport(shortReport1)
+			// fmt.Println("short", shortReport1)
+			if shortReportEvaluation1.isSafe {
+				// fmt.Println("got fixed")
 				safeReports++
 				continue
 			}
+
+			shortReport2 := append(report[:0:0], report...)
+			shortReport2 = append(shortReport2[:evaluation.increases[0]-1], shortReport2[evaluation.increases[0]:]...)
+			shortReportEvaluation2 := evaluateReport(shortReport2)
+			// fmt.Println("short", shortReport2)
+			if shortReportEvaluation2.isSafe {
+				// fmt.Println("got fixed")
+				safeReports++
+				continue
+			}
+
 		}
 
 		// handle if there is exactly 1 pair of duplicate numbers, then removing one might be enough to fix
 		if len(evaluation.duplicates) == 1 {
-			fmt.Println("found dupe:", report)
-			shortReport := append(report[:evaluation.duplicates[0]], report[evaluation.duplicates[0]+1:]...)
+
+			// fmt.Println("found dupe:", report)
+			shortReport := append(report[:0:0], report...)
+			shortReport = append(shortReport[:evaluation.duplicates[0]], shortReport[evaluation.duplicates[0]+1:]...)
 			shortReportEvaluation := evaluateReport(shortReport)
-			fmt.Println("short", shortReport)
+			// fmt.Println("short", shortReport)
 			if shortReportEvaluation.isSafe {
-				fmt.Println("got fixed")
+				// fmt.Println("got fixed")
 				safeReports++
 				continue
 			}
@@ -131,43 +183,45 @@ func part2(reports [][]int) {
 		// next handle cases where there are either 1 or 2 calcualtions that resulted in a violation of the diff rule, since
 		// this either 1 or 2 cases could be casued by a single number
 		if len(evaluation.differViolations) == 2 {
-			fmt.Println("### found one diff fixable maybe:", report)
-			shortReport1 := append(report[:evaluation.differViolations[len(evaluation.differViolations)-1]], report[evaluation.differViolations[len(evaluation.differViolations)-1]+1:]...)
+			lastDiffViolationIndex := len(evaluation.differViolations) - 1
+			// fmt.Println("### found one diff fixable maybe:", report)
+			shortReport1 := append(report[:0:0], report...)
+			shortReport1 = append(shortReport1[:evaluation.differViolations[lastDiffViolationIndex]], shortReport1[evaluation.differViolations[lastDiffViolationIndex]+1:]...)
 			shortReportEvaluation1 := evaluateReport(shortReport1)
-			fmt.Println("short", shortReport1)
+			// fmt.Println("short1", shortReport1)
 			if shortReportEvaluation1.isSafe {
-				fmt.Println("got fixed")
+				// fmt.Println("got fixed")
 				safeReports++
 				continue
 			}
 
-			fmt.Println("### found one diff fixable maybe:", report)
-			shortReport2 := append(report[:evaluation.differViolations[len(evaluation.differViolations)-2]], report[evaluation.differViolations[len(evaluation.differViolations)-2]+1:]...)
+			// fmt.Println("### found one diff fixable maybe:", report)
+			shortReport2 := append(report[:0:0], report...)
+			shortReport2 = append(shortReport2[:evaluation.differViolations[len(evaluation.differViolations)-2]], shortReport2[evaluation.differViolations[len(evaluation.differViolations)-2]+1:]...)
 			shortReportEvaluation2 := evaluateReport(shortReport2)
-			fmt.Println("short", shortReport2)
 			if shortReportEvaluation2.isSafe {
-				fmt.Println("got fixed")
+				// fmt.Println("got fixed")
 				safeReports++
 				continue
 			}
-
 		}
 
 		if len(evaluation.differViolations) == 1 {
-			fmt.Println("### found one diff fixable maybe:", report)
-			shortReport := append(report[:evaluation.differViolations[len(evaluation.differViolations)-1]], report[evaluation.differViolations[len(evaluation.differViolations)-1]+1:]...)
+			// fmt.Println("### found one diff fixable maybe:", report)
+			shortReport := append(report[:0:0], report...)
+			shortReport = append(shortReport[:evaluation.differViolations[len(evaluation.differViolations)-1]], shortReport[evaluation.differViolations[len(evaluation.differViolations)-1]+1:]...)
 			shortReportEvaluation := evaluateReport(shortReport)
-			fmt.Println("short", shortReport)
+			// fmt.Println("short1", shortReport)
 			if shortReportEvaluation.isSafe {
-				fmt.Println("got fixed")
+				// fmt.Println("got fixed")
 				safeReports++
 				continue
 			}
 		}
 
-		fmt.Println("  not fixable:", report)
-		fmt.Println("  violations:", evaluation.violationCount)
-		fmt.Println("  eval:", evaluation)
+		// fmt.Println("  not fixable:", report)
+		// fmt.Println("  violations:", evaluation.violationCount)
+		// fmt.Println("  eval:", evaluation)
 	}
 	fmt.Println("Part 2:", safeReports)
 }
